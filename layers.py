@@ -63,19 +63,23 @@ class Char_Embedding(nn.Module):
         #         Char_CNN(char_embed_size=char_vectors.size(1), 
         #                 char_word_size=filters, 
         #                 window_sz=window_sz))
-        self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
-                        char_word_size=100, 
-                        window_sz=3)
-        self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
-                        char_word_size=150, 
+        # self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
+        #                 char_word_size=100, 
+        #                 window_sz=3)
+        # self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
+        #                 char_word_size=300, 
+        #                 window_sz=5)
+        self.conv_multi = Char_CNN_multi_layer(char_embed_size=char_vectors.size(1), 
+                        hidden_sz=128, 
+                        char_word_size=160, 
                         window_sz=5)
-        self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
-                        char_word_size=200, 
-                        window_sz=7)
+        # self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
+        #                 char_word_size=200, 
+        #                 window_sz=7)
         word_length = 16
         # self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
-
-        char_filters = sum([x[0] for x in char_word_filters_windows])
+        char_filters = 160
+        # char_filters = sum([x[0] for x in char_word_filters_windows])
         self.proj = nn.Linear(word_vectors.size(1) + char_filters, hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
 
@@ -96,17 +100,21 @@ class Char_Embedding(nn.Module):
         #     x = conv(c_embed)
         #     x = x.view(batch_size, sentence_len, x.size(1)) # (batch_size, seq_len, word_embed_size)
         #     out.append(x)
-        x = self.conv1(c_embed)
-        x = x.view(batch_size, sentence_len, x.size(1))
-        out.append(x)
+        # x = self.conv1(c_embed)
+        # x = x.view(batch_size, sentence_len, x.size(1))
+        # out.append(x)
 
-        x = self.conv2(c_embed)
+        x = self.conv_multi(c_embed)
         x = x.view(batch_size, sentence_len, x.size(1))
-        out.append(x)
+        out.append(x)    
 
-        x = self.conv3(c_embed)
-        x = x.view(batch_size, sentence_len, x.size(1))
-        out.append(x)
+        # x = self.conv2(c_embed)
+        # x = x.view(batch_size, sentence_len, x.size(1))
+        # out.append(x)
+
+        # x = self.conv3(c_embed)
+        # x = x.view(batch_size, sentence_len, x.size(1))
+        # out.append(x)
 
         out.append(w_emb)
 
@@ -132,6 +140,28 @@ class Char_CNN(nn.Module):
         conv = nn.functional.relu(conv)
 
         pool = self.max_pool(conv)  # (batch_size * seq_len, word_embed_size, 1)
+        out = torch.squeeze(pool, dim=2)
+
+        return out
+
+class Char_CNN_multi_layer(nn.Module):
+    def __init__(self, char_embed_size=64, hidden_sz=128, char_word_size=160, window_sz=5):
+        super(Char_CNN_multi_layer, self).__init__()
+        self.conv = nn.Conv1d(char_embed_size, hidden_sz, window_sz)
+        self.conv2 = nn.Conv1d(hidden_sz, char_word_size, window_sz)
+        word_length = 16
+        self.max_pool = nn.MaxPool1d(kernel_size=word_length - window_sz + 1 - window_sz + 1)
+
+    #   c_embed is (batch_size * seq_len, char_embed_size, word_length)
+    def forward(self, c_embed):
+        # c_embed = c_embed.cuda()
+        conv = self.conv(c_embed)       # (batch_size * seq_len, word_embed_size, word_length - window_sz +1)
+        conv = nn.functional.relu(conv)
+
+        conv2 = self.conv2(conv) 
+        conv2 = nn.functional.relu(conv2)
+
+        pool = self.max_pool(conv2)  # (batch_size * seq_len, word_embed_size, 1)
         out = torch.squeeze(pool, dim=2)
 
         return out
