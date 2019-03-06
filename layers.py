@@ -57,12 +57,21 @@ class Char_Embedding(nn.Module):
         self.drop_prob = drop_prob
         self.w_embed = nn.Embedding.from_pretrained(word_vectors)
         self.c_embed = nn.Embedding.from_pretrained(char_vectors)
-        self.convs = []
-        for filters, window_sz in char_word_filters_windows:
-            self.convs.append(
-                Char_CNN(char_embed_size=char_vectors.size(1), 
-                        char_word_size=filters, 
-                        window_sz=window_sz))
+        # self.convs = []
+        # for filters, window_sz in char_word_filters_windows:
+        #     self.convs.append(
+        #         Char_CNN(char_embed_size=char_vectors.size(1), 
+        #                 char_word_size=filters, 
+        #                 window_sz=window_sz))
+        self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                        char_word_size=100, 
+                        window_sz=3)
+        self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                        char_word_size=150, 
+                        window_sz=5)
+        self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                        char_word_size=200, 
+                        window_sz=7)
         word_length = 16
         self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
 
@@ -83,10 +92,22 @@ class Char_Embedding(nn.Module):
 
 
         out = []
-        for conv in self.convs: # num_convs * (batch_size, seq_len, word_embed_size)
-            x = conv(c_embed)
-            x = x.view(batch_size, sentence_len, x.size(1)) # (batch_size, seq_len, word_embed_size)
-            out.append(x)
+        # for conv in self.convs: # num_convs * (batch_size, seq_len, word_embed_size)
+        #     x = conv(c_embed)
+        #     x = x.view(batch_size, sentence_len, x.size(1)) # (batch_size, seq_len, word_embed_size)
+        #     out.append(x)
+        x = self.conv1(c_embed)
+        x = x.view(batch_size, sentence_len, x.size(1))
+        out.append(x)
+
+        x = self.conv2(c_embed)
+        x = x.view(batch_size, sentence_len, x.size(1))
+        out.append(x)
+
+        x = self.conv3(c_embed)
+        x = x.view(batch_size, sentence_len, x.size(1))
+        out.append(x)
+
         out.append(w_emb)
 
         emb = torch.cat(out, dim=2) # (batch_size, seq_len, word_embed_size + embed_size)
@@ -106,6 +127,7 @@ class Char_CNN(nn.Module):
 
     #   c_embed is (batch_size * seq_len, char_embed_size, word_length)
     def forward(self, c_embed):
+        # c_embed = c_embed.cuda()
         conv = self.conv(c_embed)       # (batch_size * seq_len, word_embed_size, word_length - window_sz +1)
         conv = nn.functional.relu(conv)
 
