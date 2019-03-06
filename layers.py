@@ -100,14 +100,14 @@ class Char_Embedding(nn.Module):
 class Char_CNN(nn.Module):
     def __init__(self, char_embed_size=64, char_word_size=100, window_sz=5):
         super(Char_CNN, self).__init__()
-        self.conv = torch.nn.Conv1d(char_embed_size, char_word_size, window_sz)
+        self.conv = nn.Conv1d(char_embed_size, char_word_size, window_sz)
         word_length = 16
-        self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
+        self.max_pool = nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
 
     #   c_embed is (batch_size * seq_len, char_embed_size, word_length)
     def forward(self, c_embed):
         conv = self.conv(c_embed)       # (batch_size * seq_len, word_embed_size, word_length - window_sz +1)
-        conv = torch.nn.functional.relu(conv)
+        conv = nn.functional.relu(conv)
 
         pool = self.max_pool(conv)  # (batch_size * seq_len, word_embed_size, 1)
         out = torch.squeeze(pool, dim=2)
