@@ -97,8 +97,7 @@ class BiDAF_Char(nn.Module):
                                     char_vectors=char_vectors,
                                     hidden_size=hidden_size,
                                     drop_prob=drop_prob,
-                                    char_word_size=word_vectors.size(1), 
-                                    window_sz=5)
+                                    char_word_filters_windows=[(150, 3), (150, 5), (150, 7)])
 
         self.enc = layers.RNNEncoder(input_size=hidden_size,
                                      hidden_size=hidden_size,
