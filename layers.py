@@ -73,7 +73,7 @@ class Char_Embedding(nn.Module):
                         char_word_size=200, 
                         window_sz=7)
         word_length = 16
-        self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
+        # self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
 
         char_filters = sum([x[0] for x in char_word_filters_windows])
         self.proj = nn.Linear(word_vectors.size(1) + char_filters, hidden_size, bias=False)
