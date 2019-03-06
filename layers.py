@@ -38,6 +38,60 @@ class Embedding(nn.Module):
 
         return emb
 
+class Char_Embedding(nn.Module):
+    """Char Embedding layer used by BiDAF.
+
+    Word-level embeddings and Character-level embeddings
+    are further refined using a 2-layer Highway Encoder
+    (see `HighwayEncoder` class for details).
+
+    Args:
+        char_vectors (torch.Tensor): Pre-trained word vectors.
+        hidden_size (int): Size of hidden activations.
+        drop_prob (float): Probability of zero-ing out activations
+        char_word_size (int): number of filters for character encoding/encoding size
+        window_sz (int): CNN window size
+    """
+    def __init__(self, word_vectors, char_vectors, hidden_size, drop_prob, char_word_size=300, window_sz=5):
+        super(Char_Embedding, self).__init__()
+        self.drop_prob = drop_prob
+        self.w_embed = nn.Embedding.from_pretrained(word_vectors)
+        self.c_embed = nn.Embedding.from_pretrained(char_vectors)
+        self.conv = torch.nn.Conv1d(char_vectors.size(1), char_word_size, window_sz)
+        word_length = 16
+        self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
+
+
+        self.proj = nn.Linear(word_vectors.size(1) + char_word_size, hidden_size, bias=False)
+        self.hwy = HighwayEncoder(2, hidden_size)
+
+    def forward(self, w, c):
+        w_emb = self.w_embed(w)   # (batch_size, seq_len, embed_size)
+
+        c_embed = self.c_embed(c) # (batch_size, seq_len, word_length, embed_size)
+
+        batch_size = c.size(0)
+        sentence_len = c.size(1)
+
+        c_embed = torch.transpose(c_embed, 2, 3) # (batch_size, seq_len, embed_size, word_length)
+        c_embed = c_embed.view(-1, c_embed.size(2), c_embed.size(3)) # (batch_size * seq_len, embed_size, word_length)
+
+        conv = self.conv(c_embed)       # (batch_size * seq_len, word_embed_size, word_length - window_sz +1)
+        conv = torch.nn.functional.relu(conv)
+
+        pool = self.max_pool(conv)  # (batch_size * seq_len, word_embed_size, 1)
+        out = torch.squeeze(pool, dim=2)
+        out = out.view(batch_size, sentence_len, out.size(1)) # (batch_size, seq_len, word_embed_size)
+
+        emb = torch.cat((out, w_emb), dim=2) # (batch_size, seq_len, word_embed_size + embed_size)
+
+        emb = F.dropout(emb, self.drop_prob, self.training)
+        emb = self.proj(emb)  # (batch_size, seq_len, hidden_size)
+        emb = self.hwy(emb)   # (batch_size, seq_len, hidden_size)
+
+        return emb
+
+
 
 class HighwayEncoder(nn.Module):
     """Encode an input sequence using a highway network.
