@@ -52,7 +52,7 @@ class Char_Embedding(nn.Module):
         char_word_size (int): number of filters for character encoding/encoding size
         window_sz (int): CNN window size
     """
-    def __init__(self, word_vectors, char_vectors, hidden_size, drop_prob, char_word_filters_windows=[(150, 3), (150, 5), (150, 7)]):
+    def __init__(self, word_vectors, char_vectors, hidden_size, drop_prob, char_word_filters_windows=[(100, 3), (150, 5), (200, 7)]):
         super(Char_Embedding, self).__init__()
         self.drop_prob = drop_prob
         self.w_embed = nn.Embedding.from_pretrained(word_vectors)
