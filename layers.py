@@ -57,14 +57,31 @@ class Dropout_Embedding(nn.Module):
         self.hwy = HighwayEncoder(2, hidden_size)
 
     def forward(self, x):
+        # weirdly dropout is inconsistent from q to answer
+        
+        # y = torch.tensor([[1,2,3,4,5,6,7,8,9,10]])
+        # print(y)
+        # yemb = self.embed(y)
+        # print("yemb", yemb)
+        # yemb = F.dropout(yemb, .5, self.training)
+        # print("dropout y", yemb)
+
 
         emb = self.embed(x)   # (batch_size, seq_len, embed_size)
+        #print("emb", emb[0])
         emb = F.dropout(emb, self.drop_prob, self.training)
+        
         emb = self.proj(emb)  # (batch_size, seq_len, hidden_size)
+        #print("proj", emb[0,1:10])
+        
+        #print("dropped", emb[0])
         emb = self.hwy(emb)   # (batch_size, seq_len, hidden_size)
+        emb = F.dropout2d(emb, .1, self.training)
+        #print("hwy", emb[0,1:10])
+        #print("hwy", emb[0])
 
         # dropout on embedding - how to
-        emb = F.dropout2d(emb, self.drop_prob, self.training)
+        # emb = F.dropout2d(emb, self.drop_prob, self.training)
 
         return emb
 
