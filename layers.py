@@ -224,6 +224,35 @@ class HighwayEncoder(nn.Module):
 
         return x
 
+class PointNet(nn.Module):
+    def __init__(self,
+                hidden_size,
+                kernel_size=1):
+        super(PointNet, self).__init__()
+        self.conv1 = nn.Conv1d(hidden_size,200, kernel_size = 1)
+        self.conv2 = nn.Conv1d(200, 400, kernel_size = 1)
+        self.conv3 = nn.Conv1d(400, 800, kernel_size = 1)
+
+        self.bn1 = nn.BatchNorm1d(200)
+        self.bn2 = nn.BatchNorm1d(400)
+        self.bn3 = nn.BatchNorm1d(800)
+
+        self.proj = nn.Linear(800, 100)
+
+    def forward(self, emb):
+        # emb -- tensor of shape (batch_size, seq_len, hidden_size)
+
+        seq_len = emb.size()[1]
+        emb = emb.permute(0,2,1)
+        emb = F.relu(self.bn1(self.conv1(emb)))
+
+        emb = F.relu(self.bn2(self.conv2(emb)))
+        emb = self.bn3(self.conv3(emb))
+        global_feats = torch.max(emb, 2, keepdim=True)[0].squeeze(-1)
+        projected = self.proj(global_feats)
+        repeated = projected.unsqueeze(2).repeat(1,1,seq_len)
+        repermuted = repeated.permute(0,2,1)
+        return repermuted
 
 class RNNEncoder(nn.Module):
     """General-purpose layer for encoding a sequence using a bidirectional RNN.
