@@ -418,6 +418,58 @@ class BiDAFAttention(nn.Module):
 
         return s
 
+class SelfAttention(nn.Module):
+    """Self-attention accoridng to R-Net.
+
+    Computes self-attention for context words across entire context?
+
+
+    Bidirectional attention computes attention in two directions:
+    The context attends to the query and the query attends to the context.
+    The output of this layer is the concatenation of [context, c2q_attention,
+    context * c2q_attention, context * q2c_attention]. This concatenation allows
+    the attention vector at each timestep, along with the embeddings from
+    previous layers, to flow through the attention layer to the modeling layer.
+    The output has shape (batch_size, context_len, 8 * hidden_size).
+
+    Args:
+        hidden_size (int): Size of hidden activations.
+        drop_prob (float): Probability of zero-ing out activations.
+    """
+    def __init__(self, hidden_size, drop_prob=0.1):
+        super(SelfAttention, self).__init__()
+        self.drop_prob = drop_prob
+        self.W_self = nn.Linear(hidden_size, hidden_size)
+        self.W_other = nn.Linear(hidden_size, hidden_size)
+        self.v = nn.Parameter(torch.zeros(hidden_size))
+        for weight in (self.v):
+            nn.init.normal_(weight)
+
+
+    def forward(self, c, c_mask):
+        c = F.dropout(c, self.drop_prob, self.training)  # (bs, c_len, hid_size) the word in question
+        batch_size, c_len, _ = c.size()
+
+        proj_selves = self.W_self(c) # (batch_sz, c_len, hidden_sz)
+        proj_others = self.W_other(c) # (batch_sz, c_len, hidden_sz)
+
+        proj_selves = proj_selves.unsqueeze(2) # (batch_sz, c_len, 1,  hidden_sz)
+        proj_selves = proj_selves.expand(-1, -1, c_len, -1) # (batch_sz, c_len, c_len, hidden_sz)
+
+        proj_others = proj_others.unsqueeze(1) # (batch_sz, 1, c_len, hidden_sz)
+
+        combined = proj_selves + proj_others # (batch_sz, c_len, c_len, hidden_sz) 
+        # (context words intexed by dim 1, other words by dim 2)
+
+        combined = torch.tanh(combined) # (batch_sz, c_len, c_len, hidden_sz) 
+
+        s = torch.matmul(combined, self.v) # (batch_sz, c_len, c_len)
+
+        a = masked_softmax(s, c_mask, dim=2) # (batch_sz, c_len, c_len)
+
+        c = torch.bmm(a, c) # (batch_sz, c_len, hidden_sz)
+        return c
+
 
 class GlobalBiDAFAttention(nn.Module):
     """Bidirectional attention originally used by BiDAF.
@@ -513,9 +565,12 @@ class BiDAFOutput(nn.Module):
         hidden_size (int): Hidden size used in the BiDAF model.
         drop_prob (float): Probability of zero-ing out activations.
     """
-    def __init__(self, hidden_size, drop_prob):
+    def __init__(self, hidden_size, drop_prob, att_size=None):
         super(BiDAFOutput, self).__init__()
-        self.att_linear_1 = nn.Linear(8 * hidden_size, 1)
+        if att_size == None:
+            att_size=8*hidden_size
+
+        self.att_linear_1 = nn.Linear(att_size, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
         self.rnn = RNNEncoder(input_size=2 * hidden_size,
