@@ -308,16 +308,17 @@ class Pointnet_BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
-        self.att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
+        self.global_att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
-        self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
+        self.mod = layers.RNNEncoder(input_size=10 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
+        self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
 
 
         self.hidden_size = hidden_size
@@ -342,15 +343,12 @@ class Pointnet_BiDAF(nn.Module):
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
         q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])      # (batch_size, q_len (repeated), global_size)
-
+        c_conv = self.WordCNN(c_emb) 
         # print("q_first", q_first_hidden)
         # print("q_first size", q_first_hidden.size())
-
-        att = self.att(c_enc, q_enc,
-                       c_mask, q_mask, q_global)    # (batch_size, c_len, 8 * hidden_size)
-
+        att = self.global_att(c_enc, q_enc,
+                       c_mask, q_mask, q_global, c_conv)    # (batch_size, c_len, 10 * hidden_size)
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
-
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
