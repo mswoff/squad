@@ -47,8 +47,12 @@ def main(args):
 
     # Get model
     log.info('Building model...')
+<<<<<<< HEAD
+    model = Pointnet_BiDAF(word_vectors=word_vectors,
+=======
     model = Final_Model(word_vectors=word_vectors,
                     char_vectors=char_vectors,
+>>>>>>> f8f4370b0313d4f51156bb3a06c818900f9e5b21
                   hidden_size=args.hidden_size,
                   drop_prob=args.drop_prob)
     model = nn.DataParallel(model, args.gpu_ids)
@@ -105,7 +109,7 @@ def main(args):
                 optimizer.zero_grad()
 
                 # Forward
-                log_p1, log_p2 = model(cw_idxs, qw_idxs,cc_idxs, qc_idxs)
+                log_p1, log_p2 = model(cw_idxs, qw_idxs)
                 y1, y2 = y1.to(device), y2.to(device)
                 loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
                 loss_val = loss.item()

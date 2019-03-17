@@ -271,15 +271,15 @@ class PointNet(nn.Module):
                 hidden_size,
                 kernel_size=1):
         super(PointNet, self).__init__()
-        self.conv1 = nn.Conv1d(hidden_size,200, kernel_size = 1)
-        self.conv2 = nn.Conv1d(200, 400, kernel_size = 1)
+        self.conv1 = nn.Conv1d(hidden_size,400, kernel_size = 1)
+        # self.conv2 = nn.Conv1d(200, 400, kernel_size = 1)
         self.conv3 = nn.Conv1d(400, 800, kernel_size = 1)
 
-        self.bn1 = nn.BatchNorm1d(200)
-        self.bn2 = nn.BatchNorm1d(400)
+        self.bn1 = nn.BatchNorm1d(400)
+        #self.bn2 = nn.BatchNorm1d(400)
         self.bn3 = nn.BatchNorm1d(800)
 
-        self.proj1 = nn.Linear(900, 500)
+        self.proj1 = nn.Linear(900, 200)
         self.proj2 = nn.Linear(500, 200)
 
     def forward(self, emb, enc_h):
@@ -289,18 +289,54 @@ class PointNet(nn.Module):
         emb = emb.permute(0,2,1)
         emb = F.relu(self.bn1(self.conv1(emb)))
 
-        emb = F.relu(self.bn2(self.conv2(emb)))
+        # emb = F.relu(self.bn2(self.conv2(emb)))
         emb = self.bn3(self.conv3(emb))
         point_feats = torch.max(emb, 2, keepdim=True)[0].squeeze(-1)
 
         # attatch hidden layer, project 
         global_feats = torch.cat((point_feats, enc_h), 1)
-        global_feats_proj1 = F.relu(self.proj1(global_feats))
-        global_feats_proj1 = F.dropout(global_feats_proj1, .2, self.training)
-        global_feats_proj2 = F.relu(self.proj2(global_feats_proj1))
-        global_feats_proj2 = F.dropout(global_feats_proj2, .2, self.training)
+        # global_feats_proj1 = F.relu(self.proj1(global_feats))
+        # global_feats_proj1 = F.dropout(global_feats_proj1, .2, self.training)
+        # global_feats_proj2 = F.relu(self.proj2(global_feats_proj1))
+        # global_feats_proj2 = F.dropout(global_feats_proj2, .2, self.training)
 
-        return global_feats_proj2
+        return global_feats
+
+class WordCNN(nn.Module):
+    def __init__(self,
+                hidden_size,
+                kernel_size=5,
+                padding=2):
+        super(WordCNN, self).__init__()
+        self.conv1 = nn.Conv1d(hidden_size, 400, kernel_size = 5, padding=2)
+        #self.conv2 = nn.Conv1d(200, 400, kernel_size = 5, padding=2)
+        self.conv3 = nn.Conv1d(400, 900, kernel_size = 3, padding=1)
+
+        self.bn1 = nn.BatchNorm1d(400)
+        #self.bn2 = nn.BatchNorm1d(400)
+        self.bn3 = nn.BatchNorm1d(900)
+
+        self.proj1 = nn.Linear(800, 200)
+        self.proj2 = nn.Linear(500, 200)
+
+    def forward(self, emb):
+        # emb -- tensor of shape (batch_size, seq_len, hidden_size)
+
+        seq_len = emb.size()[1]
+        emb = emb.permute(0,2,1)
+        emb = F.relu(self.bn1(self.conv1(emb)))
+
+        #emb = F.relu(self.bn2(self.conv2(emb)))
+        emb = self.bn3(self.conv3(emb))       
+        emb = emb.permute(0,2,1)
+        # attatch hidden layer, project 
+        # global_feats_proj1 = F.relu(self.proj1(emb))
+        # global_feats_proj1 = F.dropout(global_feats_proj1, .2, self.training)
+        # global_feats_proj2 = F.relu(self.proj2(global_feats_proj1))
+        # global_feats_proj2 = F.dropout(global_feats_proj2, .2, self.training)
+
+        return emb
+
 
 class RNNEncoder(nn.Module):
     """General-purpose layer for encoding a sequence using a bidirectional RNN.
@@ -493,19 +529,20 @@ class GlobalBiDAFAttention(nn.Module):
         self.c_weight = nn.Parameter(torch.zeros(hidden_size, 1))
         self.q_weight = nn.Parameter(torch.zeros(hidden_size, 1))
         self.cq_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
+        self.global_proj = nn.Linear(900,200)
 
-        self.cg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
-        self.qg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
-        self.cqg_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
+        # self.cg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
+        # self.qg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
+        # self.cqg_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
 
         for weight in (self.c_weight, self.q_weight, self.cq_weight):
             nn.init.xavier_uniform_(weight)
         self.bias = nn.Parameter(torch.zeros(1))
 
-    def forward(self, c, q, c_mask, q_mask, g):
+    def forward(self, c, q, c_mask, q_mask, q_global, c_conv):
         batch_size, c_len, _ = c.size()
         q_len = q.size(1)
-        s = self.get_similarity_matrix(c, q, g)        # (batch_size, c_len, q_len)
+        s = self.get_similarity_matrix(c, q)        # (batch_size, c_len, q_len)
         c_mask = c_mask.view(batch_size, c_len, 1)  # (batch_size, c_len, 1)
         q_mask = q_mask.view(batch_size, 1, q_len)  # (batch_size, 1, q_len)
         s1 = masked_softmax(s, q_mask, dim=2)       # (batch_size, c_len, q_len)
@@ -516,11 +553,19 @@ class GlobalBiDAFAttention(nn.Module):
         # (bs, c_len, c_len) x (bs, c_len, hid_size) => (bs, c_len, hid_size)
         b = torch.bmm(torch.bmm(s1, s2.transpose(1, 2)), c)
 
-        x = torch.cat([c, a, c * a, c * b], dim=2)  # (bs, c_len, 4 * hid_size)
+
+        # make q_global the proper size (batch_size, 900) --> (batch_size, 1, 900)
+        q_global = q_global.unsqueeze(1)        # (batch_size, 1, 900)
+        # elementwise product of q_clobal and c_conv
+        global_sim = q_global*c_conv            # (batch_size, c_len, 900)
+        # project to size 200
+        global_sim = self.global_proj(global_sim)       # (batch_size, c_len, 200)
+        # add to vector x
+        x = torch.cat([c, a, c * a, c * b, global_sim], dim=2)  # (bs, c_len, 5 * hid_size)
 
         return x
 
-    def get_similarity_matrix(self, c, q, g):
+    def get_similarity_matrix(self, c, q):
         """Get the "similarity matrix" between context and query (using the
         terminology of the BiDAF paper).
 
@@ -541,14 +586,14 @@ class GlobalBiDAFAttention(nn.Module):
                                            .expand([-1, c_len, -1])
         s2 = torch.matmul(c * self.cq_weight, q.transpose(1, 2))
 
-        g = g.unsqueeze(1)
+        # g = g.unsqueeze(1)
 
-        s3 = torch.matmul(c * g, self.cg_weight).expand([-1, -1, q_len])
-        s4 = torch.matmul(q * g, self.qg_weight).transpose(1, 2)\
-                                           .expand([-1, c_len, -1])
-        s5 = torch.matmul(c * g * self.cqg_weight, q.transpose(1, 2))
+        # s3 = torch.matmul(c * g, self.cg_weight).expand([-1, -1, q_len])
+        # s4 = torch.matmul(q * g, self.qg_weight).transpose(1, 2)\
+        #                                    .expand([-1, c_len, -1])
+        # s5 = torch.matmul(c * g * self.cqg_weight, q.transpose(1, 2))
 
-        s = s0 + s1 + s2 + s3 + s4 + s5 + self.bias
+        s = s0 + s1 + s2 + self.bias
 
         return s
 
@@ -572,6 +617,7 @@ class BiDAFOutput(nn.Module):
             att_size=8*hidden_size
 
         self.att_linear_1 = nn.Linear(att_size, 1)
+
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
         self.rnn = RNNEncoder(input_size=2 * hidden_size,

@@ -102,6 +102,17 @@ class Final_Model(nn.Module):
                                     hidden_size=hidden_size,
                                     drop_prob=drop_prob)
 
+        # self.pointnetGlobal = layers.PointNet(hidden_size = hidden_size,
+        #                             kernel_size=1)
+
+        # self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
+
+
+        # self.enc_global = layers.RNNEncoder(input_size=2*hidden_size,
+        #                              hidden_size=hidden_size,
+        #                              num_layers=1,
+        #                              drop_prob=drop_prob)
+
         self.enc = layers.RNNEncoder(input_size=hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
@@ -109,6 +120,10 @@ class Final_Model(nn.Module):
 
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob) # replace this with yours
+
+        # self.global_att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
+        #                                  drop_prob=drop_prob)
+
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=2 * hidden_size,
@@ -128,6 +143,7 @@ class Final_Model(nn.Module):
                                       drop_prob=drop_prob,
                                       att_size=4 * hidden_size)
 
+
     def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
@@ -141,6 +157,16 @@ class Final_Model(nn.Module):
         c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
+
+        # q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])   # (batch_size, 900)  
+        # # c_conv is obtained from running WordCNN on the word embeddings
+        # c_conv = self.WordCNN(c_emb) 
+
+
+
+        # att = self.global_att(c_enc, q_enc,
+        #                c_mask, q_mask, q_global, c_conv) 
+
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
@@ -151,6 +177,16 @@ class Final_Model(nn.Module):
         second_mod = self.second_mod(self_att, c_len) # (batch_size, c_len, 2 * hidden_size)
 
         out = self.out(self_att, second_mod, c_mask)  # 2 tensors, each (batch_size, c_len)
+
+
+
+        # obtain q_global (pointnet question representation)
+        # params: q_emb and q_enc[:,0,self.hidden_size], where q_enc[:,0,self.hidden_size] is the final hidden state from the reverse encoder
+# (batch_size, c_len, 900)
+
+        # pass q_global and c_conv into attention. Look in GlobalBiDAFAttention for what do do with them when they're there
+   # (batch_size, c_len, 10 * hidden_size)
+
 
         return out
 
@@ -352,7 +388,7 @@ class Dropout_BiDAF(nn.Module):
 
         return out
 
-
+# look here for how to use PointNet
 class Pointnet_BiDAF(nn.Module):
     """Baseline BiDAF model for SQuAD.
 
@@ -391,16 +427,17 @@ class Pointnet_BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
-        self.att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
+        self.global_att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
-        self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
+        self.mod = layers.RNNEncoder(input_size=10 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
+        self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
 
 
         self.hidden_size = hidden_size
@@ -424,16 +461,17 @@ class Pointnet_BiDAF(nn.Module):
         c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
-        q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])      # (batch_size, q_len (repeated), global_size)
+        # obtain q_global (pointnet question representation)
+        # params: q_emb and q_enc[:,0,self.hidden_size], where q_enc[:,0,self.hidden_size] is the final hidden state from the reverse encoder
+        q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])   # (batch_size, 900)  
+        # c_conv is obtained from running WordCNN on the word embeddings
+        c_conv = self.WordCNN(c_emb) # (batch_size, c_len, 900)
 
-        # print("q_first", q_first_hidden)
-        # print("q_first size", q_first_hidden.size())
-
-        att = self.att(c_enc, q_enc,
-                       c_mask, q_mask, q_global)    # (batch_size, c_len, 8 * hidden_size)
-
+        # pass q_global and c_conv into attention. Look in GlobalBiDAFAttention for what do do with them when they're there
+        att = self.global_att(c_enc, q_enc,
+                       c_mask, q_mask, q_global, c_conv)    # (batch_size, c_len, 10 * hidden_size)
+        # now attention is of size 10*hidden_size, you'll need to work with that 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
-
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
