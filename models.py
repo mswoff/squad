@@ -97,35 +97,36 @@ class Final_Model(nn.Module):
     """
     def __init__(self, word_vectors, hidden_size, char_vectors, drop_prob=0.):
         super(Final_Model, self).__init__()
+        self.hidden_size = hidden_size
         self.emb = layers.Char_Embedding(word_vectors=word_vectors,
                                     char_vectors=char_vectors,
                                     hidden_size=hidden_size,
                                     drop_prob=drop_prob)
 
-        # self.pointnetGlobal = layers.PointNet(hidden_size = hidden_size,
-        #                             kernel_size=1)
+        self.pointnetGlobal = layers.PointNet(hidden_size = hidden_size,
+                                    kernel_size=1)
 
-        # self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
+        self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
 
 
-        # self.enc_global = layers.RNNEncoder(input_size=2*hidden_size,
-        #                              hidden_size=hidden_size,
-        #                              num_layers=1,
-        #                              drop_prob=drop_prob)
+        self.enc_global = layers.RNNEncoder(input_size=2*hidden_size,
+                                     hidden_size=hidden_size,
+                                     num_layers=1,
+                                     drop_prob=drop_prob)
 
         self.enc = layers.RNNEncoder(input_size=hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
-        self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
-                                         drop_prob=drop_prob) # replace this with yours
+        # self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
+        #                                  drop_prob=drop_prob) # replace this with yours
 
-        # self.global_att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
-        #                                  drop_prob=drop_prob)
+        self.global_att = layers.GlobalBiDAFAttention(hidden_size=2 * hidden_size,
+                                         drop_prob=drop_prob)
 
 
-        self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
+        self.mod = layers.RNNEncoder(input_size=10 * hidden_size,
                                      hidden_size=2 * hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
@@ -158,17 +159,17 @@ class Final_Model(nn.Module):
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
 
-        # q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])   # (batch_size, 900)  
-        # # c_conv is obtained from running WordCNN on the word embeddings
-        # c_conv = self.WordCNN(c_emb) 
+        q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])   # (batch_size, 900)  
+        # c_conv is obtained from running WordCNN on the word embeddings
+        c_conv = self.WordCNN(c_emb) 
 
 
 
-        # att = self.global_att(c_enc, q_enc,
-        #                c_mask, q_mask, q_global, c_conv) 
+        att = self.global_att(c_enc, q_enc,
+                       c_mask, q_mask, q_global, c_conv) 
 
-        att = self.att(c_enc, q_enc,
-                       c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+        # att = self.att(c_enc, q_enc,
+        #                c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 4 * hidden_size)
 
