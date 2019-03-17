@@ -120,11 +120,11 @@ class Final_Model(nn.Module):
                                             drop_prob=drop_prob)
 
         self.second_mod = layers.RNNEncoder(input_size=4 * hidden_size,
-                                     hidden_size=hidden_size,
+                                     hidden_size=2 * hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
-        self.out = layers.BiDAFOutput(hidden_size=hidden_size,
+        self.out = layers.BiDAFOutput(hidden_size=2 * hidden_size,
                                       drop_prob=drop_prob,
                                       att_size=4 * hidden_size)
 
@@ -148,7 +148,7 @@ class Final_Model(nn.Module):
 
         self_att = self.self_att(mod, c_mask) # (batch_size, c_len, 4 * hidden_size)
 
-        second_mod = self.second_mod(self_att) # (batch_size, c_len, 2 * hidden_size)
+        second_mod = self.second_mod(self_att, c_len) # (batch_size, c_len, 2 * hidden_size)
 
         out = self.out(self_att, second_mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 

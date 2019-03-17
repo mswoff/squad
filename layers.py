@@ -462,9 +462,10 @@ class SelfAttention(nn.Module):
         # (context words intexed by dim 1, other words by dim 2)
 
         combined = torch.tanh(combined) # (batch_sz, c_len, c_len, hidden_sz) 
-        print(combined.shape)
+
         s = torch.matmul(combined, self.v) # (batch_sz, c_len, c_len)
-        print(s.shape, c_mask.shape)
+        c_mask = c_mask.view(batch_size, 1, -1) 
+
         a = masked_softmax(s, c_mask, dim=2) # (batch_sz, c_len, c_len)
 
         c = torch.bmm(a, c) # (batch_sz, c_len, hidden_sz)
@@ -578,7 +579,7 @@ class BiDAFOutput(nn.Module):
                               num_layers=1,
                               drop_prob=drop_prob)
 
-        self.att_linear_2 = nn.Linear(8 * hidden_size, 1)
+        self.att_linear_2 = nn.Linear(att_size, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
 
     def forward(self, att, mod, mask):
