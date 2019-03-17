@@ -344,6 +344,7 @@ class Pointnet_BiDAF(nn.Module):
 
         q_global = self.pointnetGlobal(q_emb, q_enc[:,0, self.hidden_size:])      # (batch_size, q_len (repeated), global_size)
         c_conv = self.WordCNN(c_emb) 
+
         # print("q_first", q_first_hidden)
         # print("q_first size", q_first_hidden.size())
         att = self.global_att(c_enc, q_enc,
