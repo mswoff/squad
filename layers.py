@@ -462,9 +462,9 @@ class SelfAttention(nn.Module):
         # (context words intexed by dim 1, other words by dim 2)
 
         combined = torch.tanh(combined) # (batch_sz, c_len, c_len, hidden_sz) 
-
+        print(combined.shape)
         s = torch.matmul(combined, self.v) # (batch_sz, c_len, c_len)
-
+        print(s.shape, c_mask.shape)
         a = masked_softmax(s, c_mask, dim=2) # (batch_sz, c_len, c_len)
 
         c = torch.bmm(a, c) # (batch_sz, c_len, hidden_sz)
