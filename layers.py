@@ -99,7 +99,7 @@ class Char_Embedding(nn.Module):
         char_word_size (int): number of filters for character encoding/encoding size
         window_sz (int): CNN window size
     """
-    def __init__(self, word_vectors, char_vectors, hidden_size, drop_prob, char_word_filters_windows=[(100, 3), (150, 5), (200, 7)]):
+    def __init__(self, word_vectors, char_vectors, hidden_size, drop_prob, XL=False, wide=True, char_word_filters_windows=[(100, 3), (150, 5), (200, 7)]):
         super(Char_Embedding, self).__init__()
         self.drop_prob = drop_prob
         self.w_embed = nn.Embedding.from_pretrained(word_vectors)
@@ -110,22 +110,40 @@ class Char_Embedding(nn.Module):
         #         Char_CNN(char_embed_size=char_vectors.size(1), 
         #                 char_word_size=filters, 
         #                 window_sz=window_sz))
-        # self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
-        #                 char_word_size=100, 
-        #                 window_sz=3)
-        # self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
-        #                 char_word_size=300, 
-        #                 window_sz=5)
-        self.conv_multi = Char_CNN_multi_layer(char_embed_size=char_vectors.size(1), 
-                        hidden_sz=128, 
-                        char_word_size=160, 
-                        window_sz=5)
-        # self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
-        #                 char_word_size=200, 
-        #                 window_sz=7)
+        self.wide = wide
+        if wide:
+            if XL:
+                self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=300, 
+                                window_sz=3)
+                self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=400, 
+                                window_sz=5)
+                self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=200, 
+                                window_sz=7)
+                char_filters = 300 + 400 + 200
+            else:
+                self.conv1 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=100, 
+                                window_sz=3)
+                self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=300, 
+                                window_sz=5)
+                self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
+                                char_word_size=200, 
+                                window_sz=7)
+                char_filters = 100 + 300 + 200
+        else:
+            # this is for the deep character model
+            self.conv_multi = Char_CNN_multi_layer(char_embed_size=char_vectors.size(1), 
+                    hidden_sz=128, 
+                    char_word_size=160, 
+                    window_sz=5)
+            char_filters = 160
         word_length = 16
         # self.max_pool = torch.nn.MaxPool1d(kernel_size=word_length - window_sz + 1)
-        char_filters = 160
+        
         # char_filters = sum([x[0] for x in char_word_filters_windows])
         self.proj = nn.Linear(word_vectors.size(1) + char_filters, hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
@@ -147,21 +165,28 @@ class Char_Embedding(nn.Module):
         #     x = conv(c_embed)
         #     x = x.view(batch_size, sentence_len, x.size(1)) # (batch_size, seq_len, word_embed_size)
         #     out.append(x)
-        # x = self.conv1(c_embed)
-        # x = x.view(batch_size, sentence_len, x.size(1))
-        # out.append(x)
+        if self.wide:
+            x = self.conv1(c_embed)
+            x = x.view(batch_size, sentence_len, x.size(1))
+            x = F.dropout(x, self.drop_prob, self.training)
+            out.append(x)
 
-        x = self.conv_multi(c_embed)
-        x = x.view(batch_size, sentence_len, x.size(1))
-        out.append(x)    
+            x = self.conv2(c_embed)
+            x = x.view(batch_size, sentence_len, x.size(1))
+            x = F.dropout(x, self.drop_prob, self.training)
+            out.append(x)
 
-        # x = self.conv2(c_embed)
-        # x = x.view(batch_size, sentence_len, x.size(1))
-        # out.append(x)
+            x = self.conv3(c_embed)
+            x = x.view(batch_size, sentence_len, x.size(1))
+            x = F.dropout(x, self.drop_prob, self.training)
+            out.append(x)
 
-        # x = self.conv3(c_embed)
-        # x = x.view(batch_size, sentence_len, x.size(1))
-        # out.append(x)
+        else:
+            # this is for the deep character model
+            x = self.conv_multi(c_embed)
+            x = x.view(batch_size, sentence_len, x.size(1))
+            x = F.dropout(x, self.drop_prob, self.training)
+            out.append(x)    
 
         out.append(w_emb)
 
