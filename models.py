@@ -127,22 +127,22 @@ class Final_Model(nn.Module):
 
 
         self.mod = layers.RNNEncoder(input_size=10 * hidden_size,
-                                     hidden_size=2 * hidden_size,
+                                     hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
 
-        self.self_att = layers.SelfAttention(hidden_size=4 * hidden_size,
+        self.self_att = layers.SelfAttention(hidden_size=2 * hidden_size,
                                             drop_prob=drop_prob)
 
-        self.second_mod = layers.RNNEncoder(input_size=4 * hidden_size,
+        self.second_mod = layers.RNNEncoder(input_size=2 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob,
-                                      att_size=4 * hidden_size)
+                                      att_size=hidden_size)
 
 
     def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
