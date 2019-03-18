@@ -171,9 +171,10 @@ class Final_Model(nn.Module):
         # att = self.att(c_enc, q_enc,
         #                c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
+
         mod = self.mod(att, c_len)        # (batch_size, c_len, 4 * hidden_size)
 
-        self_att = self.self_att(mod, c_mask) # (batch_size, c_len, 4 * hidden_size)
+        self_att = self.self_att(mod, c_mask) # (batch_size, c_len, 4 * hidden_size) # *** this seems false ****
 
         second_mod = self.second_mod(self_att, c_len) # (batch_size, c_len, 2 * hidden_size)
 

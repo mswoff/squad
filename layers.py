@@ -271,16 +271,16 @@ class PointNet(nn.Module):
                 hidden_size,
                 kernel_size=1):
         super(PointNet, self).__init__()
-        self.conv1 = nn.Conv1d(hidden_size,400, kernel_size = 1)
+        self.conv1 = nn.Conv1d(hidden_size,200, kernel_size = 1)
         # self.conv2 = nn.Conv1d(200, 400, kernel_size = 1)
-        self.conv3 = nn.Conv1d(400, 800, kernel_size = 1)
+        self.conv3 = nn.Conv1d(200, 400, kernel_size = 1)
 
-        self.bn1 = nn.BatchNorm1d(400)
+        self.bn1 = nn.BatchNorm1d(200)
         #self.bn2 = nn.BatchNorm1d(400)
-        self.bn3 = nn.BatchNorm1d(800)
+        self.bn3 = nn.BatchNorm1d(400)
 
-        self.proj1 = nn.Linear(900, 200)
-        self.proj2 = nn.Linear(500, 200)
+        # self.proj1 = nn.Linear(900, 200)
+        # self.proj2 = nn.Linear(500, 200)
 
     def forward(self, emb, enc_h):
         # emb -- tensor of shape (batch_size, seq_len, hidden_size)
@@ -308,16 +308,16 @@ class WordCNN(nn.Module):
                 kernel_size=5,
                 padding=2):
         super(WordCNN, self).__init__()
-        self.conv1 = nn.Conv1d(hidden_size, 400, kernel_size = 5, padding=2)
+        self.conv1 = nn.Conv1d(hidden_size, 200, kernel_size = 5, padding=2)
         #self.conv2 = nn.Conv1d(200, 400, kernel_size = 5, padding=2)
-        self.conv3 = nn.Conv1d(400, 800, kernel_size = 3, padding=1)
+        self.conv3 = nn.Conv1d(200, 400, kernel_size = 3, padding=1)
 
-        self.bn1 = nn.BatchNorm1d(400)
+        self.bn1 = nn.BatchNorm1d(200)
         #self.bn2 = nn.BatchNorm1d(400)
-        self.bn3 = nn.BatchNorm1d(800)
+        self.bn3 = nn.BatchNorm1d(400)
 
-        self.proj1 = nn.Linear(800, 200)
-        self.proj2 = nn.Linear(500, 200)
+        # self.proj1 = nn.Linear(800, 200)
+        # self.proj2 = nn.Linear(500, 200)
 
     def forward(self, emb):
         # emb -- tensor of shape (batch_size, seq_len, hidden_size)
@@ -529,7 +529,7 @@ class GlobalBiDAFAttention(nn.Module):
         self.c_weight = nn.Parameter(torch.zeros(hidden_size, 1))
         self.q_weight = nn.Parameter(torch.zeros(hidden_size, 1))
         self.cq_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
-        self.global_proj = nn.Linear(800,200)
+        self.global_proj = nn.Linear(400,200)
 
         # self.cg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
         # self.qg_weight = nn.Parameter(torch.zeros(hidden_size, 1))
@@ -616,7 +616,7 @@ class BiDAFOutput(nn.Module):
         if att_size == None:
             att_size=8*hidden_size
 
-        self.att_linear_1 = nn.Linear(att_size, 1)
+        self.att_linear_1 = nn.Linear(2*hidden_size, 1) # i changed this
 
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
@@ -625,11 +625,17 @@ class BiDAFOutput(nn.Module):
                               num_layers=1,
                               drop_prob=drop_prob)
 
-        self.att_linear_2 = nn.Linear(att_size, 1)
+        self.att_linear_2 = nn.Linear(2*hidden_size, 1) # i changed this
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
 
     def forward(self, att, mod, mask):
         # Shapes: (batch_size, seq_len, 1)
+        # print("att", att.shape)
+        # print("mod", mod.shape)
+        # test1= self.att_linear_1(att)
+        # test2=self.att_linear_2(att)
+        # print(test1.shape)
+        # print(test2.shape)
         logits_1 = self.att_linear_1(att) + self.mod_linear_1(mod)
         mod_2 = self.rnn(mod, mask.sum(-1))
         logits_2 = self.att_linear_2(att) + self.mod_linear_2(mod_2)
