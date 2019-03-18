@@ -413,7 +413,7 @@ class Pointnet_BiDAF(nn.Module):
     """
     def __init__(self, word_vectors, hidden_size, drop_prob=0.):
         super(Pointnet_BiDAF, self).__init__()
-        self.emb = layers.Dropout_Embedding(word_vectors=word_vectors,
+        self.emb = layers.Embedding(word_vectors=word_vectors,
                                     hidden_size=hidden_size,
                                     drop_prob=drop_prob)
         self.pointnetGlobal = layers.PointNet(hidden_size = hidden_size,
@@ -438,6 +438,7 @@ class Pointnet_BiDAF(nn.Module):
                                      drop_prob=drop_prob)
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
+                                        att_size=10*hidden_size,
                                       drop_prob=drop_prob)
         self.WordCNN = layers.WordCNN(hidden_size= hidden_size, kernel_size = 5, padding=2)
 

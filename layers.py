@@ -59,15 +59,16 @@ class Dropout_Embedding(nn.Module):
     def forward(self, x):
         # weirdly dropout is inconsistent from q to answer
 
-        # y = torch.tensor([[1,2,3,4,5,6,7,8,9,10]])
-        # print(y)
-        # yemb = self.embed(y)
-        # print("yemb", yemb)
-        # yemb = F.dropout(yemb, .5, self.training)
-        # print("dropout y", yemb)
+        y = torch.tensor([[2,8,2,2,5,6,7,8,2,2]])
+        print(y)
+        yemb = self.embed(y)
+        print("yemb", yemb[:,:])
+        yemb = F.dropout2d(yemb, 0.5, self.training)
+        print("dropout y", yemb[:,:])
 
 
         emb = self.embed(x)   # (batch_size, seq_len, embed_size)
+        emb = F.dropout2d(emb, .1, self.training)
         #print("emb", emb[0])
         emb = F.dropout(emb, self.drop_prob, self.training)
         
@@ -616,7 +617,7 @@ class BiDAFOutput(nn.Module):
         if att_size == None:
             att_size=8*hidden_size
 
-        self.att_linear_1 = nn.Linear(10*hidden_size, 1) # i changed this
+        self.att_linear_1 = nn.Linear(att_size, 1) # i changed this
 
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
@@ -625,7 +626,7 @@ class BiDAFOutput(nn.Module):
                               num_layers=1,
                               drop_prob=drop_prob)
 
-        self.att_linear_2 = nn.Linear(10*hidden_size, 1) # i changed this
+        self.att_linear_2 = nn.Linear(att_size, 1) # i changed this
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
 
     def forward(self, att, mod, mask):
