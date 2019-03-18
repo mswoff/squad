@@ -616,7 +616,7 @@ class BiDAFOutput(nn.Module):
         if att_size == None:
             att_size=8*hidden_size
 
-        self.att_linear_1 = nn.Linear(2*hidden_size, 1) # i changed this
+        self.att_linear_1 = nn.Linear(10*hidden_size, 1) # i changed this
 
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
@@ -625,7 +625,7 @@ class BiDAFOutput(nn.Module):
                               num_layers=1,
                               drop_prob=drop_prob)
 
-        self.att_linear_2 = nn.Linear(2*hidden_size, 1) # i changed this
+        self.att_linear_2 = nn.Linear(10*hidden_size, 1) # i changed this
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
 
     def forward(self, att, mod, mask):
