@@ -129,12 +129,12 @@ class Char_Embedding(nn.Module):
                                 char_word_size=100, 
                                 window_sz=3)
                 self.conv2 = Char_CNN(char_embed_size=char_vectors.size(1), 
-                                char_word_size=300, 
+                                char_word_size=150, 
                                 window_sz=5)
                 self.conv3 = Char_CNN(char_embed_size=char_vectors.size(1), 
-                                char_word_size=100, 
+                                char_word_size=200, 
                                 window_sz=7)
-                char_filters = 100 + 300 + 100
+                char_filters = 100 + 150 + 200
         else:
             # this is for the deep character model
             self.conv_multi = Char_CNN_multi_layer(char_embed_size=char_vectors.size(1), 

@@ -47,8 +47,8 @@ def main(args):
 
     # Get model
     log.info('Building model...')
-    model = Pointnet_BiDAF(word_vectors=word_vectors,
-                    #char_vectors=char_vectors,
+    model = BiDAF_Char(word_vectors=word_vectors,
+                    char_vectors=char_vectors,
                   hidden_size=args.hidden_size,
                   drop_prob=args.drop_prob)
     model = nn.DataParallel(model, args.gpu_ids)
