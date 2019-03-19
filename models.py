@@ -142,8 +142,7 @@ class Final_Model(nn.Module):
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       att_size=4 * hidden_size,
-                                      drop_prob=drop_prob,
-                                      att_size=hidden_size)
+                                      drop_prob=drop_prob)
 
 
     def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
