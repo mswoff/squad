@@ -637,7 +637,8 @@ class BiDAFOutput(nn.Module):
         # test2=self.att_linear_2(att)
         # print(test1.shape)
         # print(test2.shape)
-        logits_1 = self.att_linear_1(att) + self.mod_linear_1(mod)
+        logits_1 = self.att_linear_1(att) 
+        logits_1 += self.mod_linear_1(mod)
         mod_2 = self.rnn(mod, mask.sum(-1))
         logits_2 = self.att_linear_2(att) + self.mod_linear_2(mod_2)
 
