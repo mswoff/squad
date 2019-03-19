@@ -51,7 +51,7 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-    def forward(self, cw_idxs, qw_idxs):
+    def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
@@ -135,7 +135,7 @@ class Final_Model(nn.Module):
         self.self_att = layers.SelfAttention(hidden_size=2 * hidden_size,
                                             drop_prob=drop_prob)
 
-        self.second_mod = layers.RNNEncoder(input_size=2 * hidden_size,
+        self.second_mod = layers.RNNEncoder(input_size=4 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
@@ -174,7 +174,7 @@ class Final_Model(nn.Module):
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 4 * hidden_size)
 
-        self_att = self.self_att(mod, c_mask) # (batch_size, c_len, 4 * hidden_size) # *** this seems false ****
+        self_att = self.self_att(mod, c_mask) # (batch_size, c_len, 8 * hidden_size) # *** this seems false ****
 
         second_mod = self.second_mod(self_att, c_len) # (batch_size, c_len, 2 * hidden_size)
 
@@ -370,7 +370,7 @@ class Dropout_BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-    def forward(self, cw_idxs, qw_idxs):
+    def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
@@ -446,7 +446,7 @@ class Pointnet_BiDAF(nn.Module):
         self.hidden_size = hidden_size
 
 
-    def forward(self, cw_idxs, qw_idxs):
+    def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
@@ -526,7 +526,7 @@ class MultiReaderBiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-    def forward(self, cw_idxs, qw_idxs):
+    def forward(self, cw_idxs, qw_idxs, cc_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)

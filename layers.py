@@ -505,8 +505,8 @@ class SelfAttention(nn.Module):
 
         a = masked_softmax(s, c_mask, dim=2) # (batch_sz, c_len, c_len)
 
-        c = torch.bmm(a, c) # (batch_sz, c_len, hidden_sz)
-        return c
+        c_prime = torch.bmm(a, c) # (batch_sz, c_len, hidden_sz)
+        return torch.cat([c, c_prime], dim=2)
 
 
 class GlobalBiDAFAttention(nn.Module):
