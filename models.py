@@ -140,7 +140,7 @@ class Final_Model(nn.Module):
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
-        self.out = layers.BiDAFOutput(hidden_size=hidden_size,
+        self.out = layers.BiDAFOutput(hidden_size=4 * hidden_size,
                                       drop_prob=drop_prob,
                                       att_size=hidden_size)
 
