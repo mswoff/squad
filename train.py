@@ -47,7 +47,7 @@ def main(args):
 
     # Get model
     log.info('Building model...')
-    model = SelfAttention(word_vectors=word_vectors,
+    model = SelfAttention_and_global(word_vectors=word_vectors,
                     char_vectors=char_vectors,
                   hidden_size=args.hidden_size,
                   drop_prob=args.drop_prob)
