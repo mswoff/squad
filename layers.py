@@ -59,12 +59,16 @@ class Dropout_Embedding(nn.Module):
     def forward(self, x):
         # weirdly dropout is inconsistent from q to answer
 
-        y = torch.tensor([[2,8,2,2,5,6,7,8,2,2]])
-        print(y)
-        yemb = self.embed(y)
-        print("yemb", yemb[:,:])
-        yemb = F.dropout2d(yemb, 0.5, self.training)
-        print("dropout y", yemb[:,:])
+        # y = torch.tensor([[2,8,2,2,5,6,7,8,2,2]])
+        # print(y)
+        # yemb2 = F.dropout2d(y, 0.5, self.training)
+        # yemb1 = F.dropout(y, 0.5, self.training)
+        # print(yemb2[:,:])
+        # print(yemb1[:,:])
+        # yemb = self.embed(y)
+        # print("yemb", yemb[:,:])
+        # yemb = F.dropout2d(yemb, 0.5, self.training)
+        # print("dropout y", yemb[:,:])
 
 
         emb = self.embed(x)   # (batch_size, seq_len, embed_size)
@@ -83,6 +87,72 @@ class Dropout_Embedding(nn.Module):
 
         # dropout on embedding - how to
         # emb = F.dropout2d(emb, self.drop_prob, self.training)
+
+        return emb
+
+class Dropout_Embedding_Try2(nn.Module):
+    """Embedding layer used by BiDAF, without the character-level component.
+
+    Word-level embeddings are further refined using a 2-layer Highway Encoder
+    (see `HighwayEncoder` class for details).
+
+    Args:
+        word_vectors (torch.Tensor): Pre-trained word vectors.
+        hidden_size (int): Size of hidden activations.
+        drop_prob (float): Probability of zero-ing out activations
+    """
+    def __init__(self, word_vectors, hidden_size, drop_prob):
+        super(Dropout_Embedding_Try2, self).__init__()
+        self.drop_prob = drop_prob
+        self.embed = nn.Embedding.from_pretrained(word_vectors)
+        self.proj = nn.Linear(word_vectors.size(1), hidden_size, bias=False)
+        self.hwy = HighwayEncoder(2, hidden_size)
+        self.word_vectors = word_vectors
+
+    def forward(self, x):
+
+        embed = self.embed
+        scale = None
+        words = x
+        if self.training:
+            dropout = self.drop_prob
+        else:
+            dropout = False
+
+        if dropout:
+            mask = embed.weight.data.new().resize_((embed.weight.size(0), 1)).bernoulli_(1 - dropout).expand_as(embed.weight) / (1 - dropout)
+            masked_embed_weight = mask * embed.weight
+        else:
+            masked_embed_weight = embed.weight
+        if scale:
+            masked_embed_weight = scale.expand_as(masked_embed_weight) * masked_embed_weight
+
+        padding_idx = embed.padding_idx
+        if padding_idx is None:
+            padding_idx = -1
+
+        emb = torch.nn.functional.embedding(words, masked_embed_weight,
+            padding_idx, embed.max_norm, embed.norm_type,
+            embed.scale_grad_by_freq, embed.sparse
+            )
+
+        # y = torch.tensor([[2,8,2,2,5,6,7,8,2,2]])
+        # print(y)
+        # yemb2 = F.dropout2d(y, 0.5, self.training)
+        # yemb1 = F.dropout(y, 0.5, self.training)
+        # print(yemb2[:,:])
+        # print(yemb1[:,:])
+        # yemb = self.embed(y)
+        # print("yemb", yemb[:,:])
+        # yemb = F.dropout2d(yemb, 0.5, self.training)
+        # print("dropout y", yemb[:,:])
+
+        # emb = F.dropout2d(emb, .1, self.training)
+        emb = F.dropout(emb, self.drop_prob, self.training)
+        
+        emb = self.proj(emb)  # (batch_size, seq_len, hidden_size)
+        emb = self.hwy(emb)   # (batch_size, seq_len, hidden_size)
+
 
         return emb
 
