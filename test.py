@@ -21,7 +21,7 @@ import util
 from args import get_test_args
 from collections import OrderedDict
 from json import dumps
-from models import BiDAF, BiDAF_Char, Dropout_BiDAF
+from models import BiDAF, BiDAF_Char, Dropout_BiDAF, SelfAttention
 from os.path import join
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -44,7 +44,7 @@ def main(args):
     
     # Get model
     log.info('Building model...')
-    model = BiDAF_Char(word_vectors=word_vectors,
+    model = SelfAttention(word_vectors=word_vectors,
                     char_vectors=char_vectors,
                   hidden_size=args.hidden_size)
     model = nn.DataParallel(model, gpu_ids)

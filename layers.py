@@ -115,7 +115,7 @@ class Dropout_Embedding_Try2(nn.Module):
         scale = None
         words = x
         if self.training:
-            dropout = self.drop_prob
+            dropout = .1
         else:
             dropout = False
 
