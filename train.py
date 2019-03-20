@@ -47,7 +47,7 @@ def main(args):
 
     # Get model
     log.info('Building model...')
-    model = Pointnet_BiDAF(word_vectors=word_vectors,
+    model = Dropout_BiDAF(word_vectors=word_vectors,
                     char_vectors=char_vectors,
                   hidden_size=args.hidden_size,
                   drop_prob=args.drop_prob)
@@ -76,11 +76,15 @@ def main(args):
     # Get data loader
     log.info('Building dataset...')
     train_dataset = SQuAD(args.train_record_file, args.use_squad_v2)
+    
+    # train_dataset = data.Subset(train_dataset,
+    #                             indices= np.arange(10))
     train_loader = data.DataLoader(train_dataset,
                                    batch_size=args.batch_size,
                                    shuffle=True,
                                    num_workers=args.num_workers,
                                    collate_fn=collate_fn)
+
     dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2)
     dev_loader = data.DataLoader(dev_dataset,
                                  batch_size=args.batch_size,

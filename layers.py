@@ -113,7 +113,7 @@ class Dropout_Embedding_Try2(nn.Module):
 
         embed = self.embed
         scale = None
-        word = self.word_vectors
+        words = x
         if self.training:
             dropout = self.drop_prob
         else:
