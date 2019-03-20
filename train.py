@@ -17,7 +17,7 @@ import util
 from args import get_train_args
 from collections import OrderedDict
 from json import dumps
-from models import BiDAF, BiDAF_Char, BiDAF_Char_XL, Dropout_BiDAF, Pointnet_BiDAF, MultiReaderBiDAF, Final_Model
+from models import SelfAttention, SelfAttention_and_global, BiDAF, BiDAF_Char, BiDAF_Char_XL, Dropout_BiDAF, Pointnet_BiDAF, MultiReaderBiDAF, Final_Model
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load

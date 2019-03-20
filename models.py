@@ -215,7 +215,7 @@ class SelfAttention(nn.Module):
         drop_prob (float): Dropout probability.
     """
     def __init__(self, word_vectors, hidden_size, char_vectors, drop_prob=0.):
-        super(Final_Model, self).__init__()
+        super(SelfAttention, self).__init__()
         self.hidden_size = hidden_size
         self.emb = layers.Char_Embedding(word_vectors=word_vectors,
                                     char_vectors=char_vectors,
@@ -302,7 +302,7 @@ class SelfAttention_and_global(nn.Module):
         drop_prob (float): Dropout probability.
     """
     def __init__(self, word_vectors, hidden_size, char_vectors, drop_prob=0.):
-        super(Final_Model, self).__init__()
+        super(SelfAttention_and_global, self).__init__()
         self.hidden_size = hidden_size
         self.emb = layers.Char_Embedding(word_vectors=word_vectors,
                                     char_vectors=char_vectors,
